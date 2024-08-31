@@ -11,8 +11,6 @@ const EXPIRATION_TIME = 60 * 10 //ten minutes
 const jwt = require('jsonwebtoken')
 const sequelize= require('../config/sequelize')
 
-
-
 //function to create a new user
 const createUser =async (req, res)=>{
     try {
@@ -75,6 +73,7 @@ const createUser =async (req, res)=>{
 //function to verify user
 const verifyUser = async(req, res)=>{
     const t = await sequelize.transaction()
+
     try {
         const {email, otp_code} = req.body
 
@@ -86,15 +85,13 @@ const verifyUser = async(req, res)=>{
         //get otp object from redis
         const userOtp = await redisClient.get('otp')
 
+        //check if the userOtp object exists in the database
+        if(userOtp === null) throw new Error('Invalid or Expired OTP!!')
+
         //parse the userOtp object
         const parsedOtp = JSON.parse(userOtp)
 
-        // console.log('parsedOtp',parsedOtp)
-        //check if the parsedOtp object exists in the database
-        if(parsedOtp === null) throw new Error('Invalid or Expired OTP!!')
-
-            // console.log('parsedOtp',parsedOtp)
-            // console.log('parsedemail',parsedOtp.email, 'email', email)
+        
         //check if the email and otp_code match
         if(parsedOtp.email != email || parsedOtp.otp_code != otp_code){
             throw new Error('Invalid or Expired OTP!!')
@@ -103,11 +100,11 @@ const verifyUser = async(req, res)=>{
         //get user from redis
         const userObj = await redisClient.get('newUser')
 
+        //check if userObj is null
+        if(!userObj) throw new Error ("Invalid or Expired Otp")
+
         //parse user gotten from redis
         const parsedUser = JSON.parse(userObj)
-
-        //check if parsedUser is null
-        if(!parsedUser) throw new Error ("Invalid or Expired Otp")
 
         //check if the email or whatsapp_no already exists in the database
         const findUser = await User.
@@ -122,9 +119,6 @@ const verifyUser = async(req, res)=>{
             console.log('got here')
 
         //create the new user
-
-        
-
         const newUser = await User.create({
             firstName: parsedUser.firstName,
             lastName: parsedUser.lastName,
@@ -138,15 +132,13 @@ const verifyUser = async(req, res)=>{
         },
         {
             transaction: t
-        }
-        
-    )
-console.log(' and got here')
-        
+        })   
         //create user's wallet
-        await newUser.createWallet({email: parsedUser.email}, {transaction: t})
+        await newUser.createWallet({},{transaction: t})
         
+        //commit transaction
         await t.commit()
+
         //send welcome email to the new user
         sendEmail(email, `Your email address has been verified`, 'Verification Success')
 
@@ -163,6 +155,8 @@ console.log(' and got here')
             data: newUser
         })
     } catch (error) {
+
+        //in case of error rollback the transaction
         await t.rollback()
 
         res.status(500).json({
@@ -212,11 +206,10 @@ const login = async (req, res) => {
 };
 
 //function to update user profile
-
 const updateProfile = async (req, res) => {
     try{
         //get email from the request object
-        const {email} = req.user;
+        const {user_id} = req.params;
 
         //validate the properties to be updated
         const {error} = validateUpdateCustomer(req.body)
@@ -225,7 +218,7 @@ const updateProfile = async (req, res) => {
         if(error != undefined) throw new Error(error.details[0].message)
 
         //update the user profile
-        const updated = await User.update(req.body, {where: {email: email}})
+        const updated = await User.update(req.body, {where: {id: user_id}})
 
         if(!updated) throw new Error ('Update customer failed')
 

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/users_models')
 
 const authentication = (req, res, next)=>{
 
@@ -11,29 +12,37 @@ const authentication = (req, res, next)=>{
         //check if the accessToken is valid
         // const decode = jwt.verify(accessToken, process.env.JWT_SECRET)
 
-        jwt.verify(accessToken, process.env.JWT_SECRET, (err, decoded)=>{
+        jwt.verify(accessToken, process.env.JWT_SECRET, async (err, decoded)=>{
                 //if the token is invalid, throw an error
                 if (err) {
-                    throw new Error( err)
-                }
-                 //if the accessToken is valid, add the user to the request
-                req.user = decoded
-            
-            });
-    
-        next()
-
-    } catch (error) {
-            if(error instanceof jwt.JsonWebTokenError){
+                    if(err instanceof jwt.JsonWebTokenError){
                     
-                return res.status(401).json({message: 'Invalid token!!'})
+                    return res.status(401).json({message: 'Invalid token!!'})
                     
-                }else if(error instanceof jwt.TokenExpiredError){
+                }else if(err instanceof jwt.TokenExpiredError){
                     return res.status(401).json({message: 'Token expired'})
              
                 }else{
-                        res.status(500).json({message: error.message})
+                        res.status(500).json({message: err.message})
                     }
+                }
+                 //if the accessToken is valid, add the user to the request
+                const email = decoded.email;
+                
+                const user =await User.findOne({where : {email: email}})
+
+                req.params.user_id = user.id;
+                req.params.user = user;
+                req.params.email = email;
+            
+                next()
+
+            });
+    } catch (error) {
+            res.status(500).json({
+                message: error.message,
+                status: 'error'
+            })
     }
 }
 

@@ -12,24 +12,12 @@ Wallet.init(
         autoIncrement: true,
         unique: true,
     },
-    email:{
-        type: DataTypes.STRING,
-        allowNull: false, //email is not unique becuase users are allowed to have more than one wallet 
-    },
     wallet_id: {
         type: DataTypes.UUID,
         primaryKey: true,
         unique: true,
         defaultValue: UUIDV4,
     },
-    // user_id: {
-    //     type: DataTypes.UUID,
-    //     allowNull: false,
-    //     references: { //user_id is not unique becuase users are allowed to have more than one wallet 
-    //         model: sequelize.models.User,
-    //         key: 'user_id',
-    //     },
-    // },
     amount:{
         type: DataTypes.DECIMAL(),
         allowNull: false,

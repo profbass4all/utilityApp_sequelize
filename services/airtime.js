@@ -5,12 +5,12 @@ const { v4: uuidv4 } = require('uuid');
 const getSecretTokenAirtime = async () => {
   return axios({
     method: 'post',
-    url: 'https://auth.reloadly.com/oauth/token',
+    url: process.env.GET_SECRET_TOKEN,
     data: {
       client_id: process.env.API_CLIENT_ID,
       client_secret: process.env.API_CLIENT_SECRET,
       grant_type: 'client_credentials',
-      audience: 'https://topups-sandbox.reloadly.com'
+      audience: process.env.AUDIENCE
     },
     headers: {
       'Accept': 'application/json',
@@ -24,7 +24,7 @@ const detectAirtimeOperator = async (phone, countryIsoCode ) => {
 
     const options = {
       method: 'GET',
-      url: `https://topups-sandbox.reloadly.com/operators/auto-detect/phone/${phone}/countries/${countryIsoCode}`,
+      url: `${process.env.DETECT_AIRTIME_OPERATOR}${phone}/countries/${countryIsoCode}`,
       params: {
       suggestedAmountsMap: 'true',
       suggestedAmounts: 'false'
@@ -44,7 +44,7 @@ const sendTopUp = async (operatorId, amount, email, countryCode, number) => {
 
   const options = {
               method: 'POST',
-              url: 'https://topups-sandbox.reloadly.com/topups-async', 
+              url: process.env.SEND_TOP_UP_URL, 
               headers: {
                 'Accept': 'application/com.reloadly.topups-v1+json',
                 'Authorization': `Bearer ${process.env.AIRTIME_SECRET_TOKEN}`,
@@ -63,12 +63,12 @@ const sendTopUp = async (operatorId, amount, email, countryCode, number) => {
                 },
                 senderPhone: {
                   countryCode: 'CA',
-                  number: '11231231231'
+                  number: process.env.SENDER_PHONE
                 }
               }
       }
         
-      console.log(options.data.recipientPhone.number);
+      // console.log(options.data.recipientPhone.number);
 
      return axios(options);
      
@@ -79,7 +79,7 @@ const sendTopUp = async (operatorId, amount, email, countryCode, number) => {
 const getStatusAirtime = async (transactionId) => {
   const options = {
     method: 'GET',
-    url: `https://topups-sandbox.reloadly.com/topups/${transactionId}/status`,
+    url: `process.env.GET_STATUS_OF_AIRTIME${transactionId}/status`,
     headers: {
       'Accept': 'application/com.reloadly.topups-v1+json',
       'Authorization': `Bearer ${process.env.AIRTIME_SECRET_TOKEN}`

@@ -8,13 +8,13 @@ const EXPIRATION_TIMEOUT = 60
 const listTransactionsFunction = async function (req, res){
     try {
         const alltransactions = await listTransactions()
-        if(alltransactions.length === 0) throw new Error('An error occurred')
-        console.log('listTransactions')
+        if(alltransactions.data.data == null) throw new Error('No transaction data')
+        // console.log('listTransactions', alltransactions)
 
         res.status(200).json({
         message: 'Transaction list fetched successfully!',
         status:'success',
-        data: alltransactions.data
+        data: alltransactions.data.data
     })
 
     } catch (error) {
@@ -73,7 +73,7 @@ const allTransactions = async (req, res) => {
             
             const transactionDetails =await Transaction.findAll({ 
             attributes: ['transaction_id', 'wallet_id', 'transaction_type', 'transaction_status', 'transaction_gateway_response', 'amount'],
-            where:{ email: req.user.email},
+            where:{ email: req.params.email},
             limit: LIMIT,
             offset: OFFSET
         })

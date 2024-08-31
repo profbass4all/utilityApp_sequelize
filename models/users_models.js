@@ -74,7 +74,7 @@ User.init(
   },
 );
 
-User.hasMany(Wallet , {
+User.hasOne(Wallet , {
     foreignKey: {
         allowNull: false, //
     }, //
