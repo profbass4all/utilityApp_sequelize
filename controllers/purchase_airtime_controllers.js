@@ -185,7 +185,7 @@ const sendTopUpFuncPayThroughPaystackB = async(req, res)=>{
         //check for errors
         if(!response.data)  throw new Error(messages.ERROR_OCCURED)
 
-        await Transaction.update(
+        const updateTransaction = await Transaction.update(
             {
             transaction_paid_at: verifyFundingResponse.data.data.paid_at,
             transaction_gateway_response: verifyFundingResponse.data.data.gateway_response,
@@ -201,6 +201,9 @@ const sendTopUpFuncPayThroughPaystackB = async(req, res)=>{
             {
                 where:{email: email, transaction_id: transaction_id },
         })
+
+        // console.log('obj', updateTransaction)
+        if(updateTransaction[0] != 1) throw new Error('An error occurred while updating the database transaction')
 
         res.status(200).json({
             message: messages.TOP_UP_SUCCESS,
