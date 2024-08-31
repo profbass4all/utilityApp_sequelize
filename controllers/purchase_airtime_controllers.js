@@ -4,6 +4,7 @@ const Wallet = require('../models/wallet_models');
 const sequelize = require('../config/sequelize');
 const {initializeFunding, verifyFunding} = require('../services/paystack')
 const KOBO = 100
+const messages = require('../messages');
 
 //this function generate the secret token for buying airtime
 const getSecretTokenAirtimeFunc =async (req, res)=>{
@@ -13,10 +14,10 @@ const getSecretTokenAirtimeFunc =async (req, res)=>{
             //generate the secret token
         const response = await getSecretTokenAirtime()
 
-        if(!response.data) throw new Error('An error occurred')
+        if(!response.data) throw new Error(messages.ERROR_OCCURED)
            
         res.status(200).json({
-            message: 'Access token gotten successfully',
+            message: messages.ACCESS_TOKEN,
             status:'success',
             data: response.data,
         })
@@ -34,11 +35,11 @@ const detectAirtimeOperatorFunc = async (req, res) => {
  
         const {phone, countryIsoCode, email, amount} = req.body
 
-        if(!phone || !countryIsoCode || !email || !amount) throw new Error ("Invalid phone or iso code")
+        if(!phone || !countryIsoCode || !email || !amount) throw new Error (messages.INVALID_PARAMETERS)
 
         //check the operator using the country code and phone number
         const response = await detectAirtimeOperator(phone, countryIsoCode)
-        if(!response.data) throw new Error('An error occurred')
+        if(!response.data) throw new Error(messages.ERROR_OCCURED)
 
         //create a new transaction in the database
         //i am just trying to use a different flow here
@@ -51,7 +52,7 @@ const detectAirtimeOperatorFunc = async (req, res) => {
         
 
         res.status(200).json({
-            message: 'Airtime operator detected successfully',
+            message: messages.AIRTIME_OPERATOR,
             status:'success',
             data: response.data,
             transaction_id:newTransaction.transaction_id
@@ -74,17 +75,17 @@ const sendTopUpFuncWallet =async (req, res) => {
 
         const {transaction_id, number,countryCode, email, amount , operatorId} = req.body
 
-        if(!operatorId ||!amount ||!email ||!countryCode ||!number) throw new Error ("Invalid parameters")
+        if(!operatorId ||!amount ||!email ||!countryCode ||!number) throw new Error (messages.INVALID_PARAMETERS)
 
         const checkScam = await Transaction.findOne({where: {transaction_id: transaction_id, transaction_status: 'completed'}})
-        if(checkScam != null) throw new Error ("Please try again later")
+        if(checkScam != null) throw new Error (messages.TRY_AGAIN)
         
         //get the user's wallet
         const userWallet = await Wallet.findOne({where:{userId: req.params.user_id}})
 
-        if(!userWallet) throw new Error('User wallet not found')
+        if(!userWallet) throw new Error(messages.WALLET_NOT_FOUND)
 
-        if(parseFloat(userWallet.amount) < parseFloat(amount)) throw new Error ('insufficient balance')
+        if(parseFloat(userWallet.amount) < parseFloat(amount)) throw new Error (messages.INSUFFICIENT_FUNDS)
             
         await Wallet.update({amount: parseFloat(userWallet.amount) - parseFloat(amount)},
             {where:
@@ -93,7 +94,7 @@ const sendTopUpFuncWallet =async (req, res) => {
             },
             transaction: t
         })
-            console.log('Updated user wallet')
+            // console.log('Updated use)
             //update the transaction status in the database
         await Transaction.update(
             {
@@ -122,7 +123,7 @@ const sendTopUpFuncWallet =async (req, res) => {
         )
 
         res.status(200).json({
-            message: 'Top-up successful',
+            message: messages.TOP_UP_SUCCESS,
             status:'success',
             data: response.data,
         })   
@@ -142,13 +143,13 @@ const sendTopUpFuncPayThroughPaystackA = async(req, res)=>{
         //implement this function to send the top-up to the customer using paystack
         const {email, amount} = req.body
 
-        if(!amount ||!email) throw new Error ("Invalid parameters")
+        if(!amount ||!email) throw new Error (messages.INVALID_PARAMETERS)
 
         // Call the initializeFunding function to fund the wallet
         const initializeFundingResponse = await initializeFunding(email, amount)
 
         res.status(200).json({
-            message: 'Funding successful!!!',
+            message: messages.FUNDING_SUCCESS,
             status:'success',
             data: {
                 stats: initializeFundingResponse.data.status,
@@ -169,20 +170,20 @@ const sendTopUpFuncPayThroughPaystackB = async(req, res)=>{
         
         const {reference, email, transaction_id, operatorId, amount, countryCode, number } = req.body
 
-        if(!reference) throw new Error (`invalid payment reference`)
+        if(!reference) throw new Error ( messages.INVALID_REF)
 
          //check if transaction reference is already in transaction db
         const findReference = await Transaction.findOne({where:{transaction_reference: reference, transaction_gateway_response: "Approved"}})
-        if(findReference != null) throw new Error (`Payment has been successfull in a previous transaction`);
+        if(findReference != null) throw new Error (messages.TRY_AGAIN);
         
         const verifyFundingResponse = await verifyFunding(reference)
-        if(verifyFundingResponse.data.data.status != 'success') throw new Error(`invalid transaction or payment faled`);
+        if(verifyFundingResponse.data.data.status != 'success') throw new Error(messages.ERROR_OCCURED);
         
         //send the top-up to the customer
         const response = await sendTopUp(operatorId, amount, email, countryCode, number.slice(1))
 
         //check for errors
-        if(!response.data)  throw new Error('An error occurred')
+        if(!response.data)  throw new Error(messages.ERROR_OCCURED)
 
         await Transaction.update(
             {
@@ -202,7 +203,7 @@ const sendTopUpFuncPayThroughPaystackB = async(req, res)=>{
         })
 
         res.status(200).json({
-            message: 'Top-up successful',
+            message: messages.TOP_UP_SUCCESS,
             status:'success',
             data: response.data,
         })
@@ -218,14 +219,14 @@ const getStatusAirtimeFunc =async (req, res)=>{
     try {
         const {transaction_reference} = req.params;
 
-        if(!transaction_reference) throw new Error('transaction_reference not found')
+        if(!transaction_reference) throw new Error(messages.INVALID_REF)
 
         const response = await getStatusAirtime(transaction_reference)
 
-        if(!response.data) throw new Error('An error occurred')
+        if(!response.data) throw new Error(messages.ERROR_OCCURED)
         
         res.status(200).json({
-            message: 'Status retrieved successfully',
+            message: messages.AIRTIME_STATUS,
             status:'success',
             data: response.data,
         })

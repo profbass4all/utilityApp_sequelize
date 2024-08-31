@@ -1,6 +1,7 @@
 const {listTransactions} = require('../services/paystack')
 const Transaction = require('../models/transaction_models')
 const Redis = require('redis')
+const messages = require('../messages')
 const redis_client = Redis.createClient()
 const EXPIRATION_TIMEOUT = 60
 
@@ -8,11 +9,11 @@ const EXPIRATION_TIMEOUT = 60
 const listTransactionsFunction = async function (req, res){
     try {
         const alltransactions = await listTransactions()
-        if(alltransactions.data.data == null) throw new Error('No transaction data')
+        if(alltransactions.data.data == null) throw new Error(messages.NO_TRANSACTION)
         // console.log('listTransactions', alltransactions)
 
         res.status(200).json({
-        message: 'Transaction list fetched successfully!',
+        message: messages.TRANSACTION_RETRIEVED,
         status:'success',
         data: alltransactions.data.data
     })
@@ -31,10 +32,10 @@ const transaction = async (req, res) => {
 
         const transactionDetails = await Transaction.findOne({where: {transaction_id: transaction_id}})
 
-        if(!transactionDetails) throw new Error (`Transaction not found`)
+        if(!transactionDetails) throw new Error (messages.NO_TRANSACTION)
 
         res.status(200).json({
-            message: 'Transaction details fetched successfully!',
+            message: messages.TRANSACTION_RETRIEVED,
             status:'success',
             data: transactionDetails
         })
@@ -65,7 +66,7 @@ const allTransactions = async (req, res) => {
         
         if(cachedTransactionDetails){
             return res.status(200).json({
-                message: 'Transaction details fetched from cache',
+                message: messages.TRANSACTIONS_CACHED,
                 status:'success',
                 data: JSON.parse(cachedTransactionDetails)
             })
@@ -78,14 +79,14 @@ const allTransactions = async (req, res) => {
             offset: OFFSET
         })
         
-        if(!transactionDetails) throw new Error('No transaction details found')
+        if(!transactionDetails) throw new Error(messages.NO_TRANSACTION)
 
         redis_client.setEx(`transactionDetails?page=${PAGE}&limit=${LIMIT}&offset=${OFFSET}`, EXPIRATION_TIMEOUT, JSON.stringify(transactionDetails) )
         
         
 
         res.status(200).json({
-            message: 'Transaction list fetched successfully!',
+            message: messages.TRANSACTION_RETRIEVED,
             status:'success',
             data: transactionDetails
         

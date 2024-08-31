@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/users_models')
+const messages = require('../messages')
 
 const authentication = (req, res, next)=>{
 
@@ -7,7 +8,7 @@ const authentication = (req, res, next)=>{
         //get the accessToken
         const accessToken = req.headers.authorization 
         //check if the accessToken exists
-        if(!accessToken) throw new Error('Login is required')
+        if(!accessToken) throw new Error(messages.LOGIN_REQUIRED)
 
         //check if the accessToken is valid
         // const decode = jwt.verify(accessToken, process.env.JWT_SECRET)
@@ -17,10 +18,10 @@ const authentication = (req, res, next)=>{
                 if (err) {
                     if(err instanceof jwt.JsonWebTokenError){
                     
-                    return res.status(401).json({message: 'Invalid token!!'})
+                    return res.status(401).json({message: messages.INVALID_TOKEN})
                     
                 }else if(err instanceof jwt.TokenExpiredError){
-                    return res.status(401).json({message: 'Token expired'})
+                    return res.status(401).json({message: messages.TOKEN_EXPIRED})
              
                 }else{
                         res.status(500).json({message: err.message})

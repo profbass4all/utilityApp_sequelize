@@ -1,3 +1,4 @@
+const messages = require('../messages')
 const User = require('../models/users_models')
 
 const authorization =(role)=>{
@@ -8,16 +9,16 @@ const authorization =(role)=>{
         const {user_id} = req.params
 
         //check if the user's email is valid
-        if(!user_id) throw new Error( 'Invalid user!!' , 401)
+        if(!user_id) throw new Error( messages.ERROR_OCCURED , 401)
 
         //find the user with the email address
         const user = await User.findOne({where:{id : user_id}})
 
         //check if the user exists
-        if(!user) throw new Error('User not found')
+        if(!user) throw new Error(messages.INVALID_USER , 401)
 
         //check if the user's role matches the required role
-        if(!role.includes(user.role)) throw new Error( 'Unauthorised!!' , 403 )
+        if(!role.includes(user.role)) throw new Error( messages.UNAUTHORIZED , 403 )
 
         next()
         } catch (error) {

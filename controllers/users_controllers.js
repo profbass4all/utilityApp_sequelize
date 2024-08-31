@@ -1,7 +1,6 @@
 const {validateCustomer, validateUpdateCustomer} = require('../validations/customers_validation')
 const User = require('../models/users_models')
-const Otp = require('../models/otp_models')
-const Wallet = require('../models/wallet_models')
+const messages = require('../messages')
 const { Op } = require("sequelize");
 const {hashPassword, generateOtp, comparePassword} = require('../utils')
 const Redis = require('redis')
@@ -50,7 +49,7 @@ const createUser =async (req, res)=>{
         const getotp = await redisClient.get('otp')
 
         res.status(201).json({
-            message: 'User created successfully. Please verify your email',
+            message: messages.USER_CREATED,
             status: 'success',
             data: JSON.parse(getuser),
             otp_code: JSON.parse(getotp)
@@ -86,7 +85,7 @@ const verifyUser = async(req, res)=>{
         const userOtp = await redisClient.get('otp')
 
         //check if the userOtp object exists in the database
-        if(userOtp === null) throw new Error('Invalid or Expired OTP!!')
+        if(userOtp === null) throw new Error(messages.EXPIRED_OTP)
 
         //parse the userOtp object
         const parsedOtp = JSON.parse(userOtp)
@@ -94,14 +93,14 @@ const verifyUser = async(req, res)=>{
         
         //check if the email and otp_code match
         if(parsedOtp.email != email || parsedOtp.otp_code != otp_code){
-            throw new Error('Invalid or Expired OTP!!')
+            throw new Error(messages.EXPIRED_OTP)
         }
 
         //get user from redis
         const userObj = await redisClient.get('newUser')
 
         //check if userObj is null
-        if(!userObj) throw new Error ("Invalid or Expired Otp")
+        if(!userObj) throw new Error (messages.EXPIRED_OTP)
 
         //parse user gotten from redis
         const parsedUser = JSON.parse(userObj)
@@ -115,8 +114,7 @@ const verifyUser = async(req, res)=>{
                 });
         //if email or whatsapp_no exists, throw an error
         
-        if(findUser != null) throw new Error ('A user with this email or whatsapp Number already exists')
-            console.log('got here')
+        if(findUser != null) throw new Error (messages.USER_EXIST)
 
         //create the new user
         const newUser = await User.create({
@@ -150,7 +148,7 @@ const verifyUser = async(req, res)=>{
 
         //return the new user object
         res.status(201).json({
-            message: 'User verified successfully',
+            message: messages.USER_VERIFIED,
             status:'success',
             data: newUser
         })
@@ -160,7 +158,7 @@ const verifyUser = async(req, res)=>{
         await t.rollback()
 
         res.status(500).json({
-            message: error,
+            message: error.message,
             status: 'failure'
         });
     }
@@ -176,21 +174,21 @@ const login = async (req, res) => {
         const findUser =await User.findOne({where: {email: email}})
 
         //if user not found, throw an error
-        if(!findUser) throw new Error('Invalid Email or Password')
+        if(!findUser) throw new Error(messages.INVALID_EMAIL_OR_PASSWORD)
 
         //check if password matches with the hashed password
         const hash =await comparePassword(password, findUser.salt)
 
-        if(hash != findUser.hash) throw new Error("Invalid Email or Password")
+        if(hash != findUser.hash) throw new Error(messages.INVALID_EMAIL_OR_PASSWORD)
 
         //generate a token for the user
-        const token = jwt.sign({email: findUser.email}, process.env.JWT_SECRET, {expiresIn: '1h'})
+        const token = jwt.sign({email: findUser.email}, process.env.JWT_SECRET, {expiresIn: process.env.EXPIRES_IN})
 
 
         res.setHeader('accessToken', token)
  
         res.status(200).json({
-            message: 'User logged in successfully',
+            message: messages.USER_LOGGED_IN,
             status:'success',
         })
         
@@ -219,11 +217,11 @@ const updateProfile = async (req, res) => {
 
         //update the user profile
         const updated = await User.update(req.body, {where: {id: user_id}})
-
-        if(!updated) throw new Error ('Update customer failed')
+        // console.log('updated user profile', updated)
+        if(!updated) throw new Error (messages.UPDATE_FAILED)
 
         res.status(200).json({
-            message: 'User profile updated successfully',
+            message: messages.USER_UPDATED,
             status:'success',
         })
         

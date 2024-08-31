@@ -3,6 +3,7 @@ const sequelize= require('../config/sequelize')
 const Transaction = require('../models/transaction_models');
 const MINIMUM_FUNDABLE = 1000
 const KOBO = 100
+const messages = require('../messages')
 
 
 // Function to initialize funding of wallet
@@ -16,11 +17,11 @@ const fundWallet =async (req, res)=>{
         const wallet = user.getWallet()
         //the user should have created a wallet with this email address
         // const findWallet = await Wallet.findOne({where:{userId: user_id}});
-        if(!wallet) throw new Error('Create a wallet first!!!');
+        if(!wallet) throw new Error(messages.WALLET_NOT_FOUND);
         // console.log('wallet_id', findWallet.wallet_id)
 
         //check if amount is above or equal to 1000 Naira
-        if(amount < MINIMUM_FUNDABLE) throw new Error('Amount must be at least 1000 Naira');
+        if(amount < MINIMUM_FUNDABLE) throw new Error(messages.MIN_AMOUNT);
 
         // Call the initializeFunding function to fund the wallet
         const initializeFundingResponse = await initializeFunding(email, amount)
@@ -39,7 +40,7 @@ const fundWallet =async (req, res)=>{
         
 
         res.status(200).json({
-            message: 'Funding successful!!!',
+            message: messages.FUNDING_SUCCESS,
             status:'success',
             data: {
                 stats: initializeFundingResponse.data.status,
@@ -65,16 +66,16 @@ const fundWalletVerify = async (req, res) => {
 
     try {
 
-        const {reference, user, email, user_id} = req.params
+        const {reference, user, email} = req.params
 
-        if(!reference) throw new Error (`invalid payment reference`)
+        if(!reference) throw new Error (messages.INVALID_REF)
 
          //check if transaction reference is already in transaction db
         const findReference = await Transaction.findOne({where:{transaction_reference: reference, transaction_gateway_response: "Approved"}})
-        if(findReference != null) throw new Error (`Payment has been successfull in a previous transaction`);
+        if(findReference != null) throw new Error (messages.PAYMENT_FAILED);
         
         const verifyFundingResponse = await verifyFunding(reference)
-        if(verifyFundingResponse.data.data.status != 'success') throw new Error(`invalid transaction or payment faled`);
+        if(verifyFundingResponse.data.data.status != 'success') throw new Error(messages.PAYMENT_FAILED);
 
         // //throw an error if the transaction is not successfully verified
 
@@ -91,7 +92,7 @@ const fundWalletVerify = async (req, res) => {
         //if payment is successful get the user's wallet
 
         const getUserWallet = await user.getWallet({transaction: t})
-        if(!getUserWallet) throw new Error('An error occurred')
+        if(!getUserWallet) throw new Error(messages.ERROR_OCCURED)
         
                 //update the amount in the wallet
         
@@ -124,7 +125,7 @@ const fundWalletVerify = async (req, res) => {
         await t.commit();
         //return success message and transaction data
         return  res.status(200).json({
-            message: 'Funding successful and transaction updated successfully',
+            message: messages.WALLET_UPDATED,
             status:'success',
             data: verifyFundingResponse.data.data,
         })
@@ -146,13 +147,13 @@ const wallets = async (req, res) => {
         const getUserWallet = await user.getWallet()
 
         //if no wallets were found throw an error
-        if(!getUserWallet) throw new Error('No wallets found')
+        if(!getUserWallet) throw new Error(messages.WALLET_NOT_FOUND)
 
         const getTransactions = await Transaction.findAll({where: {email: req.params.email}})
-        if(!getTransactions) throw new Error('No transactions found')
+        if(!getTransactions) throw new Error(messages.ERROR_OCCURED)
 
         res.status(200).json({
-            message: 'Wallets retrieved successfully',
+            message: messages.WALLET_RETRIEVED,
             status:'success',
             wallet: getUserWallet,
             transaction: getTransactions
