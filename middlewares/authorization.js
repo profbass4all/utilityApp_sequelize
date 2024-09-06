@@ -5,7 +5,7 @@ const authorization =(role)=>{
     return async (req, res, next)=>{
 
         try {
-            //get the email address from the req.user object
+            //get the email address from the req.params object
         const {user_id} = req.params
 
         //check if the user's email is valid

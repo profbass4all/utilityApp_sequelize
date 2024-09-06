@@ -89,7 +89,6 @@ const verifyUser = async(req, res)=>{
 
         //parse the userOtp object
         const parsedOtp = JSON.parse(userOtp)
-
         
         //check if the email and otp_code match
         if(parsedOtp.email != email || parsedOtp.otp_code != otp_code){
